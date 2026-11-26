@@ -3718,6 +3718,7 @@ test_install_data = []
 test_install_libs = []
 testprep_targets = []
 subdir('src/oracle_test')
+subdir('src/interfaces/ecpg/oracle_test')
 oracle_test_install_data = test_install_data
 oracle_test_install_libs = test_install_libs
 oracle_testprep_targets = testprep_targets
@@ -4056,12 +4057,14 @@ testwrap = files('src/tools/testwrap')
 
 foreach test_dir : tests
   # An Oracle-mode suite says so with 'oracle': true; the ones under
-  # src/oracle_test are taken as such anyway.  The flag is what lets a
-  # suite elsewhere (the PL/iSQL and ivorysql_ora suites) run with the
-  # Oracle-mode driver and template, and it does not depend on how the
-  # source root is spelled on the platform.
+  # src/oracle_test and src/interfaces/ecpg/oracle_test are taken as such
+  # anyway.  Normalize separators: on Windows current_source_dir() returns
+  # backslash-separated paths, while the '/' operator joins with '/'.
+  test_sd = '/'.join(test_dir['sd'].split('\\'))
+  test_root = '/'.join(meson.project_source_root().split('\\'))
   is_oracle_test = (test_dir.get('oracle', false) or
-    test_dir['sd'].startswith(meson.project_source_root() / 'src/oracle_test/'))
+    test_sd.startswith(test_root / 'src/oracle_test/') or
+    test_sd.startswith(test_root / 'src/interfaces/ecpg/oracle_test'))
   test_group = test_dir['name']
   if is_oracle_test
     test_group = 'oracle_' + test_group
@@ -4105,7 +4108,7 @@ foreach test_dir : tests
         )
         fallback_dbname = 'isolation_regression_@0@'
       elif kind == 'ecpg'
-        runner = pg_regress_ecpg
+        runner = is_oracle_test ? oracle_pg_regress_ecpg : pg_regress_ecpg
         fallback_dbname = 'ecpg_regression_@0@'
       endif
 
